@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mentor Soru Paneli</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --font-primary: 'Poppins', sans-serif;
+        }
+
+        @keyframes gradient-animation { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+        @keyframes fadeInUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes fadeIn-blur { from{opacity:0;filter:blur(10px)} to{opacity:1;filter:blur(0)} }
+        @keyframes sparkle-fly { 0%{opacity:1;transform:translate(0,0) scale(1)} 100%{opacity:0;transform:translate(var(--x), var(--y)) scale(0)} }
+
+        body {
+            font-family: var(--font-primary);
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(-45deg, #0f0c29, #4a00e0, #e024a3, #003973);
+            background-size: 400% 400%;
+            animation: gradient-animation 15s ease infinite;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        #puzzle-container { position:absolute; top:0; left:0; right:0; bottom:0; display:flex; flex-direction:column; justify-content:center; align-items:center; background:rgba(0,0,0,0.1); backdrop-filter:blur(5px); z-index:100; opacity:1; transition:opacity .5s ease-out; }
+        #puzzle-container.unlocked { opacity:0; pointer-events:none; }
+
+        .welcome-title { font-size: 2.5rem; font-weight: 700; text-shadow: 0 5px 15px rgba(0,0,0,0.3); margin-bottom: 3rem; animation: fadeIn-blur 1s ease-out .2s forwards; opacity:0; text-align: center; }
+        
+        #slider-track { width:320px; height:70px; background:rgba(255,255,255,0.1); border-radius:35px; position:relative; display:flex; align-items:center; justify-content:center; box-shadow:inset 0 4px 8px rgba(0,0,0,0.3); overflow:hidden; }
+        #slider-progress { position:absolute; left:0; top:0; height:100%; width:0; background:linear-gradient(90deg, #6a11cb, #2575fc); border-radius:35px; opacity:0.5; }
+        #slider-thumb { width:60px; height:60px; background:linear-gradient(135deg, #f0f0f0, #cfcfcf); border-radius:50%; position:absolute; left:5px; top:5px; cursor:grab; display:flex; justify-content:center; align-items:center; color:#333; font-size:28px; font-weight:bold; text-shadow:0 1px 1px rgba(0,0,0,0.2); box-shadow:0 8px 20px rgba(0,0,0,0.4); transition:all .3s ease; z-index:2; }
+        #slider-thumb.unlocked { background: #28a745; color: #fff; box-shadow: 0 0 20px #28a745; }
+        #slider-track p { margin:0; font-weight:600; color:rgba(255,255,255,0.6); z-index:1; padding: 0 70px; }
+
+        .sparkle { position:absolute; background:#ffeb3b; border-radius:50%; box-shadow: 0 0 5px #ffeb3b, 0 0 10px #ffeb3b, 0 0 15px #ffc107; z-index:1; pointer-events:none; animation:sparkle-fly 1s ease-out forwards; }
+
+        #form-container { display:none; max-width:550px; }
+        #form-container.visible { display:block; animation:fadeInUp .8s ease-out forwards; }
+        
+        .card { background:rgba(255,255,255,0.05); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.1); border-radius:20px; box-shadow:0 15px 35px rgba(0,0,0,0.2); }
+        .card-header { background:transparent; border-bottom:1px solid rgba(255,255,255,0.1); padding:2rem; }
+        .card-header h3 { font-weight:600; margin:0; text-shadow:0 2px 5px rgba(0,0,0,0.2); }
+        .card-body { padding:2.5rem; }
+        .form-label { font-weight:600; color:rgba(255,255,255,0.7); }
+        .form-control { background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.15); border-radius:10px; padding:.75rem 1.2rem; color:#fff; transition:background .3s ease, border-color .3s ease; }
+        .form-control::placeholder { color:rgba(255,255,255,0.4); }
+        .form-control:focus { background:rgba(0,0,0,0.2); border-color:rgba(255,255,255,0.3); box-shadow:none; color:#fff; }
+        .btn-submit { background:linear-gradient(90deg, #8e2de2, #4a00e0); border:none; border-radius:10px; padding:.85rem; font-weight:600; transition:all .3s ease; background-size:200% 100%; color:#fff; }
+        .btn-submit:hover { transform:scale(1.05); box-shadow:0 10px 20px rgba(0,0,0,0.2); background-position:right center; }
+
+        @media (max-width: 576px) {
+            .welcome-title {
+                font-size: 1.8rem;
+                margin-bottom: 2rem;
+            }
+        }
+
+
+        .trail-particle {
+            position: fixed;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(3px);
+            pointer-events: none;
+            z-index: 9999;
+            will-change: transform, opacity;
+            /* width, height, transform, and opacity are set by JS */
+        }
+    </style>
+</head>
+<body>
+    
+    <div id="puzzle-container">
+        <h1 class="welcome-title">Siliconmade Academy'ye Hoşgeldiniz</h1>
+        <div id="slider-track">
+            <div id="slider-progress"></div>
+            <p>Soru sormak için kaydırın</p>
+            <div id="slider-thumb">&raquo;</div>
+        </div>
+    </div>
+
+    <div id="form-container" class="container my-5">
+        <div class="card">
+             <div class="card-header text-white text-center">
+                <h3>Mentorluk Soru Formu</h3>
+            </div>
+            <div class="card-body">
+                <form id="questionForm">
+                    <div class="mb-4">
+                        <label for="studentName" class="form-label">İsminiz</label>
+                        <input type="text" class="form-control" id="studentName" placeholder="Adınızı ve soyadınızı yazınız..." required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="content" class="form-label">Sorunuz</label>
+                        <textarea class="form-control" id="content" rows="5" placeholder="Sorunuzu buraya detaylı olarak yazınız..." required></textarea>
+                    </div>
+                    <div>
+                        <button type="submit" class="btn btn-submit w-100 py-3">Soruyu Gönder</button>
+                    </div>
+                </form>
+                <div id="alertBox" class="mt-4" style="display:none;"></div>
+            </div>
+        </div>
+        <div class="text-center mt-4">
+            <a href="sorular.html" class="btn btn-outline-light">Soruları Görüntüle</a>
+        </div>
+    </div>
+
+    <script>
+        const puzzleContainer = document.getElementById('puzzle-container');
+        const formContainer = document.getElementById('form-container');
+        const sliderThumb = document.getElementById('slider-thumb');
+        const sliderTrack = document.getElementById('slider-track');
+        const sliderProgress = document.getElementById('slider-progress');
+
+        let isDragging = false, startX = 0, offsetX = 0;
+        let lastSparkleTime = 0;
+
+        const createSparkle = () => {
+            const sparkle = document.createElement('div');
+            sparkle.className = 'sparkle';
+            puzzleContainer.appendChild(sparkle);
+
+            const size = Math.random() * 4 + 2; // Slightly smaller sparkles
+            sparkle.style.width = `${size}px`;
+            sparkle.style.height = `${size}px`;
+
+            const thumbRect = sliderThumb.getBoundingClientRect();
+            const containerRect = puzzleContainer.getBoundingClientRect();
+
+            // Center of the thumb relative to the puzzle container
+            const thumbCenterX = thumbRect.left - containerRect.left + thumbRect.width / 2;
+            const thumbCenterY = thumbRect.top - containerRect.top + thumbRect.height / 2;
+            
+            // Random position around the thumb's circumference
+            const angle = Math.random() * 2 * Math.PI;
+            const radius = (thumbRect.width / 2) + Math.random() * 15;
+
+            sparkle.style.left = `${thumbCenterX + Math.cos(angle) * radius}px`;
+            sparkle.style.top = `${thumbCenterY + Math.sin(angle) * radius}px`;
+
+            sparkle.style.setProperty('--x', `${(Math.random() - 0.5) * 70}px`);
+            sparkle.style.setProperty('--y', `${(Math.random() - 0.5) * 70}px`);
+
+            sparkle.addEventListener('animationend', () => sparkle.remove());
+        };
+
+        const unlock = () => {
+            puzzleContainer.classList.add('unlocked');
+            sliderThumb.classList.add('unlocked');
+            sliderThumb.innerHTML = '✓';
+            setTimeout(() => {
+                puzzleContainer.style.display = 'none';
+                formContainer.classList.add('visible');
+            }, 600);
+        };
+
+        const resetSlider = () => {
+            sliderThumb.style.transition = 'left 0.4s cubic-bezier(0.2, 1, 0.4, 1)';
+            sliderThumb.style.left = '5px';
+            sliderProgress.style.width = '0px';
+            setTimeout(() => sliderThumb.style.transition = '', 400);
+        };
+
+        const startDrag = (e) => {
+            isDragging = true;
+            sliderThumb.style.cursor = 'grabbing';
+            sliderThumb.style.transition = 'none';
+            sliderProgress.style.transition = 'none';
+        };
+
+        const onDrag = (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            const currentX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+            const trackRect = sliderTrack.getBoundingClientRect();
+            let newLeft = currentX - trackRect.left - (sliderThumb.offsetWidth / 2);
+
+            const maxOffset = sliderTrack.offsetWidth - sliderThumb.offsetWidth - 10;
+            newLeft = Math.min(Math.max(0, newLeft), maxOffset);
+            sliderThumb.style.left = `${newLeft + 5}px`;
+            sliderProgress.style.width = `${newLeft + 25}px`;
+
+            const now = Date.now();
+            if (now - lastSparkleTime > 25) { // Throttle sparkle creation a bit more
+                createSparkle();
+                lastSparkleTime = now;
+            }
+        };
+
+        const endDrag = () => {
+            if (!isDragging) return;
+            isDragging = false;
+            sliderThumb.style.cursor = 'grab';
+
+            const maxOffset = sliderTrack.offsetWidth - sliderThumb.offsetWidth - 10;
+            const currentOffset = parseFloat(sliderThumb.style.left) - 5;
+            const unlockThreshold = maxOffset * 0.95;
+
+            if (currentOffset >= unlockThreshold) {
+                sliderThumb.style.left = `${maxOffset + 5}px`;
+                sliderProgress.style.width = `${maxOffset + 25}px`;
+                unlock();
+            } else {
+                resetSlider();
+            }
+        };
+
+        sliderThumb.addEventListener('mousedown', startDrag);
+        document.addEventListener('mousemove', onDrag);
+        document.addEventListener('mouseup', endDrag);
+        sliderThumb.addEventListener('touchstart', startDrag, {passive: false});
+        document.addEventListener('touchmove', onDrag, {passive: false});
+        document.addEventListener('touchend', endDrag);
+
+        // --- Form Submission Logic ---
+        const BASE_API_URL = "https://localhost:7127";
+        // ... (rest of the form submission script is unchanged)
+        document.getElementById('questionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const name = document.getElementById('studentName').value;
+            const content = document.getElementById('content').value;
+            const alertBox = document.getElementById('alertBox');
+            const data = { studentName: name, content: content };
+
+            try {
+                const response = await fetch(`${BASE_API_URL}/api/questions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const responseData = await response.json();
+                if (response.ok) {
+                    alertBox.className = "alert alert-success";
+                    alertBox.innerText = "Sorunuz başarıyla iletildi! Mentorunuz en kısa sürede dönüş yapacaktır.";
+                    alertBox.style.display = "block";
+                    document.getElementById('questionForm').reset();
+                } else {
+                    throw new Error(responseData.message || 'Bir hata oluştu');
+                }
+            } catch (error) {
+                alertBox.className = "alert alert-danger";
+                alertBox.innerText = "Bağlantı hatası! API çalışmıyor veya URL yanlış olabilir.";
+                alertBox.style.display = "block";
+                console.error(error);
+            }
+            
+            setTimeout(() => {
+                alertBox.style.display = 'none';
+            }, 5000);
+        });
+
+        // --- Comet Trail Effect ---
+        const trailCount = 20; // Number of particles in the trail
+        const particles = [];
+
+        for (let i = 0; i < trailCount; i++) {
+            const particleDiv = document.createElement('div');
+            particleDiv.className = 'trail-particle';
+            document.body.appendChild(particleDiv);
+            particles.push({
+                node: particleDiv,
+                x: 0,
+                y: 0,
+            });
+        }
+
+        let mouseX = 0;
+        let mouseY = 0;
+        let isMoving = false;
+        let timeoutId;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            isMoving = true;
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(() => { isMoving = false; }, 100); // Detect when mouse stops
+        });
+
+        function animateParticles() {
+            let leaderX = mouseX;
+            let leaderY = mouseY;
+            
+            particles.forEach((particle, index) => {
+                const targetX = leaderX;
+                const targetY = leaderY;
+
+                // Apply easing to make the particle follow its leader
+                particle.x += (targetX - particle.x) * 0.3;
+                particle.y += (targetY - particle.y) * 0.3;
+
+                particle.node.style.left = particle.x + 'px';
+                particle.node.style.top = particle.y + 'px';
+
+                // Scale and opacity based on index to create the tail effect
+                const scale = (trailCount - index) / trailCount;
+                const opacity = scale * 0.7;
+                
+                // When mouse stops, make the trail collapse into the cursor
+                const finalScale = isMoving ? scale : 0;
+
+                particle.node.style.width = '30px';
+                particle.node.style.height = '30px';
+                particle.node.style.opacity = opacity;
+                particle.node.style.transform = `translate(-50%, -50%) scale(${finalScale})`;
+                
+                // The next particle follows this one
+                leaderX = particle.x;
+                leaderY = particle.y;
+            });
+
+            requestAnimationFrame(animateParticles);
+        }
+
+        animateParticles();
+    </script>
+</body>
+</html>

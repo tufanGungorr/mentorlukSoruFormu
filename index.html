@@ -235,7 +235,7 @@
             try {
                 const response = await fetch(`${BASE_API_URL}/api/questions`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
                     body: JSON.stringify(data)
                 });
                 const responseData = await response.json();
